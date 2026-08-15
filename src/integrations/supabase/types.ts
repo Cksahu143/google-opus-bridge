@@ -14,7 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      google_connections: {
+        Row: {
+          access_token_ciphertext: string | null
+          access_token_expires_at: string | null
+          created_at: string
+          google_email: string | null
+          google_sub: string | null
+          granted_scopes: string[]
+          id: string
+          last_error: string | null
+          refresh_token_ciphertext: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_ciphertext?: string | null
+          access_token_expires_at?: string | null
+          created_at?: string
+          google_email?: string | null
+          google_sub?: string | null
+          granted_scopes?: string[]
+          id?: string
+          last_error?: string | null
+          refresh_token_ciphertext?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_ciphertext?: string | null
+          access_token_expires_at?: string | null
+          created_at?: string
+          google_email?: string | null
+          google_sub?: string | null
+          granted_scopes?: string[]
+          id?: string
+          last_error?: string | null
+          refresh_token_ciphertext?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oauth_states: {
+        Row: {
+          code_verifier: string
+          created_at: string
+          redirect_to: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier: string
+          created_at?: string
+          redirect_to?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          code_verifier?: string
+          created_at?: string
+          redirect_to?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      operation_logs: {
+        Row: {
+          actor: string
+          capability: string
+          created_at: string
+          details: Json
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          implementation: string
+          service: string
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          actor?: string
+          capability: string
+          created_at?: string
+          details?: Json
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          implementation: string
+          service: string
+          success: boolean
+          user_id: string
+        }
+        Update: {
+          actor?: string
+          capability?: string
+          created_at?: string
+          details?: Json
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          implementation?: string
+          service?: string
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_health: {
+        Row: {
+          checked_at: string
+          detail: string | null
+          id: string
+          service: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          detail?: string | null
+          id?: string
+          service: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          detail?: string | null
+          id?: string
+          service?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workflow_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          name: string
+          result: Json | null
+          status: string
+          steps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          name: string
+          result?: Json | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          name?: string
+          result?: Json | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
