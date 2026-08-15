@@ -59,6 +59,11 @@ export interface GoogleAdapter {
   status: ServiceStatus;
   /** Honest note about what is and is not possible today. */
   statusNote: string;
+  /**
+   * False when the adapter authenticates by its own means (e.g. a Gemini API
+   * key) and does not need the user's Google OAuth grant.
+   */
+  requiresGoogleAuth?: boolean | undefined;
   /** Official documentation this adapter was built from. */
   docsUrl: string;
   capabilities: Capability<never, unknown>[];
