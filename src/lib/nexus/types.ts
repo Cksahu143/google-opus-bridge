@@ -47,7 +47,7 @@ export interface Capability<TInput = unknown, TOutput = unknown> {
   scopes: string[];
   /** Mutating capabilities are gated by the permission system. */
   mutating?: boolean | undefined;
-  input: z.ZodType<TInput>;
+  input: z.ZodType<TInput, z.ZodTypeDef, unknown>;
   run: (ctx: AdapterContext, input: TInput) => Promise<TOutput>;
 }
 
