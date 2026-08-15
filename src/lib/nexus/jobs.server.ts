@@ -49,11 +49,11 @@ export async function createJob(params: {
       provider: params.provider,
       model: params.model,
       prompt: params.prompt,
-      parameters: params.parameters ?? {},
+      parameters: (params.parameters ?? {}) as never,
       status: params.status ?? "queued",
       status_detail: params.statusDetail ?? null,
       operation_name: params.operationName ?? null,
-      result: params.result ?? null,
+      result: (params.result ?? null) as never,
       actor: params.actor ?? "web",
       ...(params.status === "completed" ? { completed_at: new Date().toISOString() } : {}),
     })
@@ -79,7 +79,7 @@ export async function updateJob(
     .update({
       ...(patch.status ? { status: patch.status } : {}),
       ...(patch.statusDetail === undefined ? {} : { status_detail: patch.statusDetail }),
-      ...(patch.result === undefined ? {} : { result: patch.result }),
+      ...(patch.result === undefined ? {} : { result: patch.result as never }),
       ...(patch.operationName === undefined ? {} : { operation_name: patch.operationName }),
       ...(patch.errorMessage === undefined
         ? {}
