@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      generation_jobs: {
+        Row: {
+          actor: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          kind: string
+          model: string
+          operation_name: string | null
+          parameters: Json
+          prompt: string
+          provider: string
+          result: Json | null
+          status: string
+          status_detail: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actor?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind: string
+          model: string
+          operation_name?: string | null
+          parameters?: Json
+          prompt: string
+          provider: string
+          result?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actor?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          kind?: string
+          model?: string
+          operation_name?: string | null
+          parameters?: Json
+          prompt?: string
+          provider?: string
+          result?: Json | null
+          status?: string
+          status_detail?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_connections: {
         Row: {
           access_token_ciphertext: string | null
@@ -54,6 +111,83 @@ export type Database = {
           last_error?: string | null
           refresh_token_ciphertext?: string | null
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nexus_notebook_sources: {
+        Row: {
+          cached_text: string | null
+          char_count: number
+          created_at: string
+          id: string
+          kind: string
+          notebook_id: string
+          reference: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cached_text?: string | null
+          char_count?: number
+          created_at?: string
+          id?: string
+          kind: string
+          notebook_id: string
+          reference?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cached_text?: string | null
+          char_count?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          notebook_id?: string
+          reference?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexus_notebook_sources_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "nexus_notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nexus_notebooks: {
+        Row: {
+          created_at: string
+          description: string | null
+          drive_folder_id: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          drive_folder_id?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          drive_folder_id?: string | null
+          id?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }
