@@ -42,7 +42,7 @@ export interface Capability<TInput = unknown, TOutput = unknown> {
   /** OAuth scopes required for this capability. */
   scopes: string[];
   /** Mutating capabilities are gated by the permission system. */
-  mutating?: boolean;
+  mutating?: boolean | undefined;
   input: z.ZodType<TInput>;
   run: (ctx: AdapterContext, input: TInput) => Promise<TOutput>;
 }
@@ -59,7 +59,7 @@ export interface GoogleAdapter {
   docsUrl: string;
   capabilities: Capability<never, unknown>[];
   /** Cheap request proving the API is reachable with the user's grant. */
-  healthCheck?: (ctx: AdapterContext) => Promise<{ ok: boolean; detail: string }>;
+  healthCheck?: undefined | ((ctx: AdapterContext) => Promise<{ ok: boolean; detail: string }>);
 }
 
 export function defineAdapter(adapter: GoogleAdapter): GoogleAdapter {

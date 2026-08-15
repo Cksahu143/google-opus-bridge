@@ -8,7 +8,7 @@ export interface OperationLogInput {
   actor: "web" | "mcp" | "workflow";
   success: boolean;
   durationMs: number;
-  errorMessage?: string;
+  errorMessage?: string | undefined;
   details?: unknown;
 }
 
@@ -25,7 +25,7 @@ export async function logOperation(entry: OperationLogInput): Promise<void> {
       success: entry.success,
       duration_ms: entry.durationMs,
       error_message: entry.errorMessage ? redactMessage(entry.errorMessage) : null,
-      details: (redact(entry.details ?? {}) ?? {}) as Record<string, unknown>,
+      details: JSON.parse(JSON.stringify(redact(entry.details ?? {}) ?? {})),
     });
   } catch (error) {
     // Audit failures must never break the operation itself.

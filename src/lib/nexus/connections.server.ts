@@ -34,11 +34,11 @@ export async function getConnection(userId: string): Promise<StoredConnection | 
 export async function saveConnection(params: {
   userId: string;
   accessToken: string;
-  refreshToken?: string;
+  refreshToken?: string | undefined;
   expiresInSeconds: number;
   scopes: string[];
-  googleEmail?: string;
-  googleSub?: string;
+  googleEmail?: string | undefined;
+  googleSub?: string | undefined;
 }) {
   const db = await admin();
   const existing = await getConnection(params.userId);
