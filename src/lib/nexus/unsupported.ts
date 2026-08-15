@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { capabilityUnavailable } from "./errors";
 import { defineCapability, type Capability, type ImplementationKind } from "./types";
 
@@ -14,7 +16,6 @@ export function unavailableCapability(params: {
   reason: string;
   implementation?: ImplementationKind;
 }): Capability<never, unknown> {
-  const { z } = require("zod") as typeof import("zod");
   return defineCapability({
     id: params.id,
     title: params.title,
