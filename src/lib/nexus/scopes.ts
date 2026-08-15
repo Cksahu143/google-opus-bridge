@@ -29,6 +29,11 @@ export const SCOPES = {
   forms: "https://www.googleapis.com/auth/forms.body",
   formsResponses: "https://www.googleapis.com/auth/forms.responses.readonly",
   script: "https://www.googleapis.com/auth/script.projects",
+  /**
+   * Vertex AI (Lyria music, Imagen on Vertex). Requested only when the user
+   * opts into the generative-media adapters, because it is broad.
+   */
+  cloudPlatform: "https://www.googleapis.com/auth/cloud-platform",
 } as const;
 
 export type ScopeKey = keyof typeof SCOPES;
