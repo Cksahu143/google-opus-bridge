@@ -27,7 +27,11 @@ export interface AdapterContext {
   /** Authenticated JSON call against a Google endpoint. */
   api: <T = unknown>(
     url: string,
-    init?: { method?: string; body?: unknown; headers?: Record<string, string> },
+    init?: {
+      method?: string | undefined;
+      body?: unknown;
+      headers?: Record<string, string> | undefined;
+    },
   ) => Promise<T>;
   /** Raw authenticated fetch (media downloads, uploads). */
   raw: (url: string, init?: RequestInit) => Promise<Response>;
