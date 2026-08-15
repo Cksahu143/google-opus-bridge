@@ -130,12 +130,14 @@ async function resolveJob(ctx: AdapterContext, jobId: string) {
     const bytes = base64ToBytes(clip.base64);
     clips.push(
       saveToDrive
-        ? await saveBinaryToDrive(ctx, {
+        ? {
+            ...(await saveBinaryToDrive(ctx, {
             name: `nexus-video-${Date.now()}-${index}.mp4`,
             mimeType: clip.mimeType,
             data: bytes,
             folderId: targetFolder,
-          })
+            })),
+          }
         : { mimeType: clip.mimeType, bytes: bytes.length },
     );
   }
