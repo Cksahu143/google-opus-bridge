@@ -77,11 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Google Nexus — universal Google gateway for Claude" },
+      {
+        name: "description",
+        content:
+          "Google Nexus exposes the Google ecosystem to Claude through one MCP connection: Gmail, Drive, Docs, Sheets, Calendar, Meet, Gemini, Imagen and Veo.",
+      },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Google Nexus — universal Google gateway for Claude" },
+      {
+        property: "og:description",
+        content: "One Google connection for Claude: Workspace, Gemini, Imagen, Veo and more.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
