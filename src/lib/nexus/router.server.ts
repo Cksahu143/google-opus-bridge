@@ -40,12 +40,13 @@ export async function runCapability(params: {
 
   const needsGoogle = adapter.requiresGoogleAuth !== false || capability.scopes.length > 0;
   let ctx: AdapterContext;
-  if (needsGoogle) {
-    const connection = await getConnection(params.userId);
-    if (!connection || connection.status !== "connected") throw notConnected();
-    if (!hasScopes(connection.granted_scopes ?? [], capability.scopes)) {
-      throw missingScope(capability.scopes);
-    }
+  const connection = await getConnection(params.userId);
+  if (needsGoogle && (!connection || connection.status !== "connected")) throw notConnected();
+  if (connection && !hasScopes(connection.granted_scopes ?? [], capability.scopes)) {
+    throw missingScope(capability.scopes);
+  }
+  if (connection && connection.status === "connected") {
+    // Even key-authenticated adapters (Imagen, Veo) need Drive to persist output.
     ctx = await createAdapterContext(params.userId);
   } else {
     ctx = {
