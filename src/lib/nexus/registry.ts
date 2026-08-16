@@ -74,7 +74,7 @@ export interface CapabilitySummary {
   mutating: boolean;
   scopes: string[];
   serviceStatus: string;
-  inputSchema: unknown;
+  inputSchema: { type: string; fields?: string[] };
 }
 
 /** Machine-readable catalog for the dashboard and the MCP `list_capabilities` tool. */
@@ -93,7 +93,7 @@ export function capabilityCatalog(): CapabilitySummary[] {
   }));
 }
 
-function describeSchema(capability: Capability<never, unknown>): unknown {
+function describeSchema(capability: Capability<never, unknown>): { type: string; fields?: string[] } {
   // Zod schemas are not JSON-serializable; expose a light shape hint instead.
   const shape = (capability.input as unknown as { _def?: { shape?: () => Record<string, unknown> } })
     ._def?.shape;

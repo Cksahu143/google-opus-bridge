@@ -43,9 +43,9 @@ export const runNexusCapability = createServerFn({ method: "POST" })
         input: data.input ?? {},
         actor: "web",
       });
-      return { ok: true as const, result };
+      return { ok: true as const, resultJson: JSON.stringify(result ?? null, null, 2), error: null };
     } catch (error) {
-      return { ok: false as const, error: (error as Error).message };
+      return { ok: false as const, resultJson: null, error: (error as Error).message };
     }
   });
 
