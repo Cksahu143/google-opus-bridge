@@ -29,6 +29,20 @@ export const SCOPES = {
   forms: "https://www.googleapis.com/auth/forms.body",
   formsResponses: "https://www.googleapis.com/auth/forms.responses.readonly",
   script: "https://www.googleapis.com/auth/script.projects",
+
+  // YouTube Data API v3 — read-only is enough for search/list/analytics-lite use.
+  youtubeReadonly: "https://www.googleapis.com/auth/youtube.readonly",
+
+  // Classroom API — split by resource, requested only for what's implemented.
+  classroomCourses: "https://www.googleapis.com/auth/classroom.courses.readonly",
+  classroomRosters: "https://www.googleapis.com/auth/classroom.rosters.readonly",
+  classroomCourseworkMe: "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+  classroomCourseworkStudents:
+    "https://www.googleapis.com/auth/classroom.coursework.students.readonly",
+
+  // Drive Activity API v2 — "what changed and who changed it" over Drive.
+  driveActivity: "https://www.googleapis.com/auth/drive.activity.readonly",
+
   /**
    * Vertex AI (Lyria music, Imagen on Vertex). Requested only when the user
    * opts into the generative-media adapters, because it is broad.

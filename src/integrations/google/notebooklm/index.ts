@@ -144,7 +144,9 @@ async function grounded(params: { instruction: string; sources: SourceRow[] }) {
           },
         ],
       },
-      contents: [{ role: "user", parts: [{ text: `SOURCES:\n${block}\n\nTASK:\n${params.instruction}` }] }],
+      contents: [
+        { role: "user", parts: [{ text: `SOURCES:\n${block}\n\nTASK:\n${params.instruction}` }] },
+      ],
       generationConfig: { temperature: 0.2 },
     }),
   );
@@ -317,6 +319,67 @@ export const notebooklmAdapter = defineAdapter({
       },
     }),
     defineCapability({
+      id: "notebook.get",
+      title: "Get a notebook",
+      description:
+        "Read one notebook's details and its full source list (previously created notebooks included).",
+      implementation: "gemini-api",
+      scopes: [],
+      input: z.object({ notebookId: z.string().min(1) }),
+      run: async (ctx, input) => {
+        const notebook = await requireNotebook(ctx.userId, input.notebookId);
+        const sources = await loadSources(ctx.userId, input.notebookId);
+        return {
+          notebook,
+          sources: sources.map(({ id, kind, title, reference, char_count }) => ({
+            id,
+            kind,
+            title,
+            reference,
+            char_count,
+          })),
+        };
+      },
+    }),
+    defineCapability({
+      id: "notebook.update",
+      title: "Rename or redescribe a notebook",
+      description: "Edit an existing notebook's title, description, or linked Drive folder.",
+      implementation: "gemini-api",
+      scopes: [],
+      mutating: true,
+      input: z.object({
+        notebookId: z.string().min(1),
+        title: z.string().min(1).optional(),
+        description: z.string().optional(),
+        driveFolderId: z.string().optional(),
+      }),
+      run: async (ctx, input) => {
+        await requireNotebook(ctx.userId, input.notebookId);
+        const patch: {
+          updated_at: string;
+          title?: string;
+          description?: string;
+          drive_folder_id?: string;
+        } = {
+          updated_at: new Date().toISOString(),
+        };
+        if (input.title !== undefined) patch.title = input.title;
+        if (input.description !== undefined) patch.description = input.description;
+        if (input.driveFolderId !== undefined) patch.drive_folder_id = input.driveFolderId;
+        const client = await db();
+        const { data, error } = await client
+          .from("nexus_notebooks")
+          .update(patch)
+          .eq("id", input.notebookId)
+          .eq("user_id", ctx.userId)
+          .select("*")
+          .single();
+        if (error) throw error;
+        return { notebook: data };
+      },
+    }),
+    defineCapability({
       id: "notebook.ask",
       title: "Ask a notebook",
       description:
@@ -328,13 +391,18 @@ export const notebooklmAdapter = defineAdapter({
         const notebook = await requireNotebook(ctx.userId, input.notebookId);
         const sources = await loadSources(ctx.userId, input.notebookId);
         const result = await grounded({ instruction: input.question, sources });
-        return { notebook: { id: notebook.id, title: notebook.title }, question: input.question, ...result };
+        return {
+          notebook: { id: notebook.id, title: notebook.title },
+          question: input.question,
+          ...result,
+        };
       },
     }),
     defineCapability({
       id: "notebook.summarize",
       title: "Summarize a notebook",
-      description: "Produce a briefing of a notebook's sources: key points, themes and open questions.",
+      description:
+        "Produce a briefing of a notebook's sources: key points, themes and open questions.",
       implementation: "gemini-api",
       scopes: [],
       input: z.object({
@@ -354,7 +422,11 @@ export const notebooklmAdapter = defineAdapter({
           instruction: instructions[input.style] as string,
           sources,
         });
-        return { notebook: { id: notebook.id, title: notebook.title }, style: input.style, ...result };
+        return {
+          notebook: { id: notebook.id, title: notebook.title },
+          style: input.style,
+          ...result,
+        };
       },
     }),
     defineCapability({
