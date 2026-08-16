@@ -43,18 +43,20 @@ async function lyriaPredict(
   const project = cloudProject();
   const location = vertexLocation();
   const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${params.model}:predict`;
-  const response = await ctx.api<LyriaResponse>(url, {
-    body: {
-      instances: [
-        {
-          prompt: params.prompt,
-          ...(params.negativePrompt ? { negative_prompt: params.negativePrompt } : {}),
-          ...(params.seed === undefined ? {} : { seed: params.seed }),
-        },
-      ],
-      parameters: { sample_count: params.count },
-    },
-  });
+  const response = await ctx
+    .api<LyriaResponse>(url, {
+      body: {
+        instances: [
+          {
+            prompt: params.prompt,
+            ...(params.negativePrompt ? { negative_prompt: params.negativePrompt } : {}),
+            ...(params.seed === undefined ? {} : { seed: params.seed }),
+          },
+        ],
+        parameters: { sample_count: params.count },
+      },
+    })
+    .catch(explainVertexError);
   const tracks = (response.predictions ?? [])
     .map((prediction) => ({
       mimeType: prediction.mimeType ?? "audio/wav",
@@ -65,6 +67,26 @@ async function lyriaPredict(
     throw new NexusError("music_no_output", "Vertex Lyria returned no audio data.", 502);
   }
   return tracks;
+}
+
+/**
+ * Vertex returns a bare 403 "Permission denied on resource project ..." when
+ * GOOGLE_CLOUD_PROJECT is set and Vertex AI is enabled, but the project has
+ * not been allowlisted for Lyria specifically — this is a distinct, common
+ * failure mode from "not configured at all" and deserves its own message so
+ * whoever owns the project knows exactly what to do next. See:
+ * https://discuss.ai.google.dev (search "allowlist access lyria")
+ */
+function explainVertexError(err: unknown): never {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/permission denied/i.test(message)) {
+    throw new NexusError(
+      "lyria_not_allowlisted",
+      "Vertex AI is reachable, but this Cloud project does not have Lyria access yet. Lyria is gated behind a per-project allowlist that Google approves manually — request access at https://discuss.ai.google.dev by posting the Cloud project ID, region, and use case (search the forum for \"Requesting allowlist access to Lyria\" for the template other developers have used). Enabling the Vertex AI API alone is not sufficient.",
+      403,
+    );
+  }
+  throw err;
 }
 
 export const musicAdapter = defineAdapter({

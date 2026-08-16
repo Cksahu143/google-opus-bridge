@@ -19,26 +19,57 @@ import { defineAdapter, defineCapability, type AdapterContext } from "@/lib/nexu
 /**
  * Normalized Nexus image API. Underneath it uses the two real programmatic
  * Google image surfaces:
- *   - Imagen on the Gemini API (`models/imagen-*:predict`)
- *     https://ai.google.dev/gemini-api/docs/imagen
+ *   - Imagen on Vertex AI (`publishers/google/models/imagen-*:predict`)
+ *     https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
+ *     NOTE: Imagen is NOT served by the public Gemini API key (ai.google.dev) —
+ *     calling it there returns a "no longer available to new users" error
+ *     regardless of the model version pinned. It only works via Vertex AI's
+ *     predict endpoint, authenticated with the connected account's
+ *     cloud-platform OAuth grant (same pattern as the Lyria music adapter).
  *   - Gemini native image generation/editing (`gemini-*-image:generateContent`)
  *     https://ai.google.dev/gemini-api/docs/image-generation
+ *     This one *is* served by the Gemini API key and needs no Cloud project.
  * Claude only ever sees image.generate / image.edit / image.variations.
  */
 const DEFAULT_IMAGEN_MODEL = "imagen-4.0-generate-001";
+// gemini-2.5-flash-image is confirmed reachable on the public Gemini API;
+// this is also the default engine now, since it needs only an API key and
+// no Vertex/Cloud-project configuration to work.
 const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
 
 interface ImagenPredictResponse {
   predictions?: { bytesBase64Encoded?: string; mimeType?: string }[];
 }
 
-async function imagenPredict(params: {
-  model: string;
-  prompt: string;
-  count: number;
-  aspectRatio: string;
-}) {
-  const response = await geminiJson<ImagenPredictResponse>(`models/${params.model}:predict`, {
+function cloudProject(): string {
+  const project = process.env["GOOGLE_CLOUD_PROJECT"]?.trim();
+  if (!project) {
+    throw new NexusError(
+      "vertex_not_configured",
+      "The imagen engine runs on Vertex AI, which needs a Google Cloud project. Set GOOGLE_CLOUD_PROJECT and re-connect Google so the cloud-platform permission is granted, or use engine: 'gemini' instead, which only needs GOOGLE_AI_API_KEY.",
+      503,
+    );
+  }
+  return project;
+}
+
+function vertexLocation(): string {
+  return process.env["GOOGLE_CLOUD_LOCATION"]?.trim() || "us-central1";
+}
+
+async function imagenPredict(
+  ctx: AdapterContext,
+  params: {
+    model: string;
+    prompt: string;
+    count: number;
+    aspectRatio: string;
+  },
+) {
+  const project = cloudProject();
+  const location = vertexLocation();
+  const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${params.model}:predict`;
+  const response = await ctx.api<ImagenPredictResponse>(url, {
     body: {
       instances: [{ prompt: params.prompt }],
       parameters: {
@@ -162,7 +193,11 @@ export const imagenAdapter = defineAdapter({
         prompt: z.string().min(1),
         count: z.number().int().min(1).max(4).default(1),
         aspectRatio: z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"]).default("1:1"),
-        engine: z.enum(["imagen", "gemini"]).default("imagen"),
+        // "gemini" is the default because it only needs GOOGLE_AI_API_KEY.
+        // "imagen" needs Vertex AI + GOOGLE_CLOUD_PROJECT configured (see
+        // cloudProject() above) and should be requested explicitly once that
+        // is set up.
+        engine: z.enum(["imagen", "gemini"]).default("gemini"),
         model: z.string().optional(),
         saveToDrive: z.boolean().default(true),
         driveFolderId: z.string().optional(),
@@ -174,7 +209,7 @@ export const imagenAdapter = defineAdapter({
           (input.engine === "imagen" ? DEFAULT_IMAGEN_MODEL : DEFAULT_GEMINI_IMAGE_MODEL);
         const images =
           input.engine === "imagen"
-            ? await imagenPredict({
+            ? await imagenPredict(ctx, {
                 model,
                 prompt: input.prompt,
                 count: input.count,
