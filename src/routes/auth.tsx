@@ -10,7 +10,7 @@ import { safeNext } from "@/lib/useSession";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({ next: safeNext(search.next) }),
+  validateSearch: (search: Record<string, unknown>) => ({ next: safeNext(search['next']) }),
   head: () => ({
     meta: [
       { title: "Sign in · Google Nexus" },
