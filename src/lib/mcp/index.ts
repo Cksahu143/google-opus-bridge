@@ -1,4 +1,4 @@
-import { auth, defineMcp } from "@lovable.dev/mcp-js";
+import { auth, defineMcp, type McpDefinitionInput } from "@lovable.dev/mcp-js";
 
 import callCapability from "./tools/call-capability";
 import connectionStatus from "./tools/connection-status";
@@ -8,6 +8,15 @@ import listCapabilities from "./tools/list-capabilities";
 // The OAuth issuer must be the direct Supabase host; the project ref is the only
 // value that survives publish unchanged.
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
+
+// defineTool infers `outputSchema: undefined` for tools that return plain text,
+// which trips exactOptionalPropertyTypes against the definition's tool list.
+const tools = [
+  listCapabilities,
+  describeCapability,
+  callCapability,
+  connectionStatus,
+] as unknown as McpDefinitionInput["tools"];
 
 export default defineMcp({
   name: "google-nexus-gateway",
@@ -19,5 +28,5 @@ export default defineMcp({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listCapabilities, describeCapability, callCapability, connectionStatus],
+  tools,
 });
