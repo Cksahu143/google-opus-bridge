@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://tonpexbeocphpzsltovv.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "google-nexus-gateway",
+      "version": "1.0.0",
+      "title": "Google Nexus Gateway"
+    },
+    "tools": [
+      {
+        "name": "list_capabilities",
+        "title": "List Google capabilities",
+        "description": "List every Google capability Google Nexus exposes (Gmail, Drive, Docs, Sheets, Slides, Calendar, Tasks, Contacts, Meet, Chat, Forms, Apps Script, Gemini, image/video/music generation, Flow projects, grounded notebooks). Call this first to discover capability ids and their input fields.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "service": {
+              "type": "string",
+              "description": "Optional service filter, e.g. gmail, drive, calendar, video."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "describe_capability",
+        "title": "Describe a capability",
+        "description": "Show the full input contract, required Google scopes and docs link for one capability id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "capability_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Capability id, e.g. gmail.send"
+            }
+          },
+          "required": [
+            "capability_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "call_capability",
+        "title": "Call a Google capability",
+        "description": "Run any Google Nexus capability against the connected Google account. Pass the capability id from list_capabilities and its input object. This is the single entry point for reading and writing Gmail, Drive, Docs, Sheets, Slides, Calendar, Tasks, Contacts, Meet, Chat, Forms, Apps Script and the generative media adapters.",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "capability_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Capability id, e.g. drive.search"
+            },
+            "input": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Capability input object."
+            }
+          },
+          "required": [
+            "capability_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "connection_status",
+        "title": "Google connection status",
+        "description": "Report which Google account is connected, whether its grant is healthy, and which services are ready. Use this when a call fails with a connection or permission error.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
