@@ -39,6 +39,7 @@ export async function githubFetch(
       "content-type": "application/json",
       authorization: `Bearer ${requireGithubToken()}`,
       "x-github-api-version": "2022-11-28",
+      "user-agent": "google-nexus-gateway",
     },
     ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
   });
