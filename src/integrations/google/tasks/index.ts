@@ -28,6 +28,19 @@ export const tasksAdapter = defineAdapter({
       run: (ctx) => ctx.api(`${BASE}/users/@me/lists`),
     }),
     defineCapability({
+      id: "tasks.create_tasklist",
+      title: "Create a task list",
+      description: "Create a new, named task list (as opposed to using the existing default list).",
+      implementation: "google-rest-api",
+      scopes: [SCOPES.tasks],
+      mutating: true,
+      input: z.object({ title: z.string().min(1) }),
+      run: (ctx, input) =>
+        ctx.api(`${BASE}/users/@me/lists`, {
+          body: { title: input.title },
+        }),
+    }),
+    defineCapability({
       id: "tasks.list_tasks",
       title: "List tasks",
       description: "List tasks in a task list (use '@default' for the default list).",
@@ -74,10 +87,10 @@ export const tasksAdapter = defineAdapter({
       mutating: true,
       input: z.object({ taskListId: z.string().default("@default"), taskId: z.string().min(1) }),
       run: (ctx, input) =>
-        ctx.api(
-          `${BASE}/lists/${encodeURIComponent(input.taskListId)}/tasks/${input.taskId}`,
-          { method: "PATCH", body: { status: "completed" } },
-        ),
+        ctx.api(`${BASE}/lists/${encodeURIComponent(input.taskListId)}/tasks/${input.taskId}`, {
+          method: "PATCH",
+          body: { status: "completed" },
+        }),
     }),
   ],
 });

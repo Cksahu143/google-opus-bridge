@@ -66,6 +66,14 @@ export interface GoogleAdapter {
   requiresGoogleAuth?: boolean | undefined;
   /** Official documentation this adapter was built from. */
   docsUrl: string;
+  /**
+   * True for adapters kept only as a documented extension point (e.g. no
+   * public API exists at all, like Keep). Excluded from the discoverable
+   * list_capabilities response so future runs don't guess at availability,
+   * while remaining in the registry for internal reference and health
+   * checks.
+   */
+  hidden?: boolean | undefined;
   capabilities: Capability<never, unknown>[];
   /** Cheap request proving the API is reachable with the user's grant. */
   healthCheck?: undefined | ((ctx: AdapterContext) => Promise<{ ok: boolean; detail: string }>);

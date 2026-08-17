@@ -11,6 +11,7 @@ export const SCOPES = {
   gmailReadonly: "https://www.googleapis.com/auth/gmail.readonly",
   gmailSend: "https://www.googleapis.com/auth/gmail.send",
   gmailModify: "https://www.googleapis.com/auth/gmail.modify",
+  gmailCompose: "https://www.googleapis.com/auth/gmail.compose",
 
   drive: "https://www.googleapis.com/auth/drive",
   documents: "https://www.googleapis.com/auth/documents",
@@ -39,6 +40,7 @@ export const SCOPES = {
   classroomCourseworkMe: "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
   classroomCourseworkStudents:
     "https://www.googleapis.com/auth/classroom.coursework.students.readonly",
+  classroomAnnouncements: "https://www.googleapis.com/auth/classroom.announcements.readonly",
 
   // Drive Activity API v2 — "what changed and who changed it" over Drive.
   driveActivity: "https://www.googleapis.com/auth/drive.activity.readonly",

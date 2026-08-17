@@ -17,11 +17,13 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ service }) => {
     const { capabilityCatalog, ADAPTERS } = await import("@/lib/nexus/registry");
+    const visibleAdapters = ADAPTERS.filter((adapter) => !adapter.hidden);
+    const visibleServices = new Set(visibleAdapters.map((adapter) => adapter.service));
     const capabilities = capabilityCatalog().filter(
-      (entry) => !service || entry.service === service,
+      (entry) => visibleServices.has(entry.service) && (!service || entry.service === service),
     );
     return textResult({
-      services: ADAPTERS.map((adapter) => ({
+      services: visibleAdapters.map((adapter) => ({
         service: adapter.service,
         label: adapter.label,
         status: adapter.status,

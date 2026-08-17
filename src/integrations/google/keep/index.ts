@@ -25,6 +25,7 @@ export const keepAdapter = defineAdapter({
   statusNote:
     "Google Keep has no public API for personal accounts. The official Keep API is Workspace-enterprise-only (admin-granted domain-wide delegation), with no self-service option for a consumer @gmail.com account. The only workaround is an unofficial client that violates Google's ToS, which this connector will not use. Use Drive, Docs, or Tasks for note-taking instead.",
   docsUrl: "https://developers.google.com/workspace/keep/api/guides",
+  hidden: true,
   capabilities: [
     unavailableCapability({
       id: "keep.list_notes",

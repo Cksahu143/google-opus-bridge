@@ -169,6 +169,42 @@ export const gmailAdapter = defineAdapter({
       },
     }),
     defineCapability({
+      id: "gmail.create_draft",
+      title: "Create a draft",
+      description:
+        "Create a Gmail draft without sending it — safe for test/preview flows that shouldn't risk a real send.",
+      implementation: "google-rest-api",
+      scopes: [SCOPES.gmailCompose],
+      mutating: true,
+      input: z.object({
+        to: z.string().min(3),
+        subject: z.string().default(""),
+        body: z.string().default(""),
+        cc: z.string().optional(),
+        replyToMessageId: z.string().optional(),
+      }),
+      run: async (ctx, input) => {
+        const lines = [
+          `To: ${input.to}`,
+          ...(input.cc ? [`Cc: ${input.cc}`] : []),
+          `Subject: ${input.subject}`,
+          "MIME-Version: 1.0",
+          'Content-Type: text/plain; charset="UTF-8"',
+          "",
+          input.body,
+        ];
+        const rawMessage = Buffer.from(lines.join("\r\n"), "utf8").toString("base64url");
+        return ctx.api(`${BASE}/drafts`, {
+          body: {
+            message: {
+              raw: rawMessage,
+              ...(input.replyToMessageId ? { threadId: input.replyToMessageId } : {}),
+            },
+          },
+        });
+      },
+    }),
+    defineCapability({
       id: "gmail.modify_labels",
       title: "Add or remove labels",
       description: "Add or remove labels on a message (archive with removeLabelIds: ['INBOX']).",

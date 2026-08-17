@@ -83,6 +83,21 @@ export const classroomAdapter = defineAdapter({
           )}/studentSubmissions?userId=me`,
         ),
     }),
+    defineCapability({
+      id: "classroom.list_announcements",
+      title: "List announcements",
+      description: "List announcements posted to a course.",
+      implementation: "google-rest-api",
+      scopes: [SCOPES.classroomAnnouncements],
+      input: z.object({
+        courseId: z.string().min(1),
+        pageSize: z.number().int().min(1).max(100).default(20),
+      }),
+      run: (ctx, input) =>
+        ctx.api(
+          `${BASE}/courses/${encodeURIComponent(input.courseId)}/announcements?pageSize=${input.pageSize}`,
+        ),
+    }),
   ],
 });
 
