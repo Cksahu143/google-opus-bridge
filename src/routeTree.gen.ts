@@ -15,6 +15,8 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as NotebooksIndexRouteImport } from './routes/notebooks/index'
+import { Route as NotebooksNotebookIdRouteImport } from './routes/notebooks/$notebookId'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicGoogleCallbackRouteImport } from './routes/api/public/google/callback'
@@ -51,6 +53,16 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const NotebooksIndexRoute = NotebooksIndexRouteImport.update({
+  id: '/notebooks/',
+  path: '/notebooks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotebooksNotebookIdRoute = NotebooksNotebookIdRouteImport.update({
+  id: '/notebooks/$notebookId',
+  path: '/notebooks/$notebookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -75,6 +87,8 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/notebooks/$notebookId': typeof NotebooksNotebookIdRoute
+  '/notebooks/': typeof NotebooksIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
@@ -86,6 +100,8 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/notebooks/$notebookId': typeof NotebooksNotebookIdRoute
+  '/notebooks': typeof NotebooksIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
@@ -98,6 +114,8 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/notebooks/$notebookId': typeof NotebooksNotebookIdRoute
+  '/notebooks/': typeof NotebooksIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
@@ -111,6 +129,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/notebooks/$notebookId'
+    | '/notebooks/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/google/callback'
@@ -122,6 +142,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/notebooks/$notebookId'
+    | '/notebooks'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/google/callback'
@@ -133,6 +155,8 @@ export interface FileRouteTypes {
     | '/setup'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/notebooks/$notebookId'
+    | '/notebooks/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/google/callback'
@@ -145,6 +169,8 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  NotebooksNotebookIdRoute: typeof NotebooksNotebookIdRoute
+  NotebooksIndexRoute: typeof NotebooksIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicGoogleCallbackRoute: typeof ApiPublicGoogleCallbackRoute
@@ -194,6 +220,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notebooks/': {
+      id: '/notebooks/'
+      path: '/notebooks'
+      fullPath: '/notebooks/'
+      preLoaderRoute: typeof NotebooksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notebooks/$notebookId': {
+      id: '/notebooks/$notebookId'
+      path: '/notebooks/$notebookId'
+      fullPath: '/notebooks/$notebookId'
+      preLoaderRoute: typeof NotebooksNotebookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -226,6 +266,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  NotebooksNotebookIdRoute: NotebooksNotebookIdRoute,
+  NotebooksIndexRoute: NotebooksIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicGoogleCallbackRoute: ApiPublicGoogleCallbackRoute,

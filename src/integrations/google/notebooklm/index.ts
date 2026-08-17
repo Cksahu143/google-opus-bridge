@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { NexusError } from "@/lib/nexus/errors";
 import { collectText, geminiGenerateContent } from "@/lib/nexus/gemini.server";
+import { notebookUrl } from "@/lib/nexus/app-url";
 import { SCOPES } from "@/lib/nexus/scopes";
 import { defineAdapter, defineCapability, type AdapterContext } from "@/lib/nexus/types";
 
@@ -250,7 +251,7 @@ export const notebooklmAdapter = defineAdapter({
           .select("*")
           .single();
         if (error) throw error;
-        return { notebook: data, sources: [] };
+        return { notebook: data, sources: [], url: notebookUrl(data.id) };
       },
     }),
     defineCapability({
@@ -273,7 +274,11 @@ export const notebooklmAdapter = defineAdapter({
             const { nexus_notebook_sources: sources, ...notebook } = row as NotebookRow & {
               nexus_notebook_sources?: { id: string }[];
             };
-            return { ...notebook, sourceCount: sources?.length ?? 0 };
+            return {
+              ...notebook,
+              sourceCount: sources?.length ?? 0,
+              url: notebookUrl(notebook.id),
+            };
           }),
         };
       },
@@ -393,6 +398,7 @@ export const notebooklmAdapter = defineAdapter({
         const sources = await loadSources(ctx.userId, input.notebookId);
         return {
           notebook,
+          url: notebookUrl(notebook.id),
           sources: sources.map(({ id, kind, title, reference, char_count }) => ({
             id,
             kind,
@@ -549,6 +555,7 @@ export const notebooklmAdapter = defineAdapter({
           notebookId: notebook.id,
           sourceId: data.id,
           totalMemoryChars: data.char_count,
+          url: notebookUrl(notebook.id),
         };
       },
     }),
