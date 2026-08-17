@@ -10,6 +10,7 @@ import flowAdapter from "@/integrations/google/flow/index";
 import formsAdapter from "@/integrations/google/forms/index";
 import geminiAdapter from "@/integrations/google/gemini/index";
 import gmailAdapter from "@/integrations/google/gmail/index";
+import githubAdapter from "@/integrations/github/index";
 import imagenAdapter from "@/integrations/google/imagen/index";
 import keepAdapter from "@/integrations/google/keep/index";
 import meetAdapter from "@/integrations/google/meet/index";
@@ -47,6 +48,7 @@ export const ADAPTERS: GoogleAdapter[] = [
   musicAdapter,
   flowAdapter,
   notebooklmAdapter,
+  githubAdapter,
 ];
 
 export function findAdapter(service: string): GoogleAdapter | undefined {
