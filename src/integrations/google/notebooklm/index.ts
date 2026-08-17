@@ -153,6 +153,68 @@ async function grounded(params: { instruction: string; sources: SourceRow[] }) {
   return { answer, citations, sourcesUsed: citations.length };
 }
 
+const MEMORY_NOTEBOOK_TITLE = "Memory";
+const MEMORY_SOURCE_TITLE = "Memory Log";
+
+async function findMemoryNotebook(userId: string): Promise<NotebookRow | null> {
+  const client = await db();
+  const { data, error } = await client
+    .from("nexus_notebooks")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("title", MEMORY_NOTEBOOK_TITLE)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as NotebookRow | null) ?? null;
+}
+
+async function findOrCreateMemoryNotebook(userId: string): Promise<NotebookRow> {
+  const existing = await findMemoryNotebook(userId);
+  if (existing) return existing;
+  const client = await db();
+  const { data, error } = await client
+    .from("nexus_notebooks")
+    .insert({
+      user_id: userId,
+      title: MEMORY_NOTEBOOK_TITLE,
+      description:
+        "Auto-created by memory.remember. A durable, append-only log of things to remember.",
+      drive_folder_id: null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as NotebookRow;
+}
+
+async function findOrCreateMemoryLog(userId: string, notebookId: string): Promise<SourceRow> {
+  const client = await db();
+  const { data: existing, error: findError } = await client
+    .from("nexus_notebook_sources")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("notebook_id", notebookId)
+    .eq("title", MEMORY_SOURCE_TITLE)
+    .maybeSingle();
+  if (findError) throw findError;
+  if (existing) return existing as SourceRow;
+  const { data, error } = await client
+    .from("nexus_notebook_sources")
+    .insert({
+      user_id: userId,
+      notebook_id: notebookId,
+      kind: "text",
+      title: MEMORY_SOURCE_TITLE,
+      reference: null,
+      cached_text: "",
+      char_count: 0,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as SourceRow;
+}
+
 export const notebooklmAdapter = defineAdapter({
   service: "notebook",
   label: "Grounded notebooks (NotebookLM-style)",
@@ -447,6 +509,73 @@ export const notebooklmAdapter = defineAdapter({
           .eq("id", input.sourceId);
         if (error) throw error;
         return { removed: input.sourceId };
+      },
+    }),
+    defineCapability({
+      id: "memory.remember",
+      title: "Remember something",
+      description:
+        "Save a fact/preference/instruction for later. Auto-creates a 'Memory' notebook and a single append-only 'Memory Log' source the first time this is called, then appends a timestamped entry to it on every call after. This is real persistence in Nexus's own database — no separate Google account involved.",
+      implementation: "gemini-api",
+      scopes: [],
+      mutating: true,
+      input: z.object({
+        content: z.string().min(1),
+        tag: z
+          .string()
+          .optional()
+          .describe("Optional short label, e.g. 'preference', 'project:evolved'"),
+      }),
+      run: async (ctx, input) => {
+        const client = await db();
+        const notebook = await findOrCreateMemoryNotebook(ctx.userId);
+        const source = await findOrCreateMemoryLog(ctx.userId, notebook.id);
+        const stamp = new Date().toISOString();
+        const line = `[${stamp}]${input.tag ? ` (${input.tag})` : ""} ${input.content.trim()}`;
+        const nextText =
+          `${source.cached_text ?? ""}${source.cached_text ? "\n" : ""}${line}`.slice(
+            -MAX_SOURCE_CHARS,
+          );
+        const { data, error } = await client
+          .from("nexus_notebook_sources")
+          .update({ cached_text: nextText, char_count: nextText.length })
+          .eq("id", source.id)
+          .eq("user_id", ctx.userId)
+          .select("id, char_count")
+          .single();
+        if (error) throw error;
+        return {
+          remembered: input.content,
+          notebookId: notebook.id,
+          sourceId: data.id,
+          totalMemoryChars: data.char_count,
+        };
+      },
+    }),
+    defineCapability({
+      id: "memory.recall",
+      title: "Recall from memory",
+      description:
+        "Read back what has been remembered. With a question, answers grounded strictly in the memory log with citations; without one, returns the raw log.",
+      implementation: "gemini-api",
+      scopes: [],
+      input: z.object({ question: z.string().optional() }),
+      run: async (ctx, input) => {
+        const notebook = await findMemoryNotebook(ctx.userId);
+        if (!notebook) {
+          return { hasMemory: false, message: "Nothing has been remembered yet." };
+        }
+        const sources = await loadSources(ctx.userId, notebook.id);
+        if (input.question) {
+          const result = await grounded({ instruction: input.question, sources });
+          return { hasMemory: true, question: input.question, ...result };
+        }
+        const log = sources.find((s) => s.title === MEMORY_SOURCE_TITLE);
+        return {
+          hasMemory: Boolean(log?.cached_text),
+          notebookId: notebook.id,
+          log: log?.cached_text ?? "",
+        };
       },
     }),
   ],
