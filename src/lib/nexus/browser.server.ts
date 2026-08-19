@@ -215,15 +215,16 @@ export async function runBrowserScript(params: {
   const token = browserlessToken();
   const response = await fetch(`https://production-sfo.browserless.io/function?token=${token}`, {
     method: "POST",
-    headers: { "content-type": "application/javascript" },
-    body: params.script,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code: params.script, context: params.context ?? {} }),
   });
   const text = await response.text();
   if (!response.ok) {
     throw new NexusError("browserless_error", text || `Browserless HTTP ${response.status}`, 502);
   }
   try {
-    return JSON.parse(text);
+    const parsed = JSON.parse(text) as { data?: unknown };
+    return "data" in parsed ? parsed.data : parsed;
   } catch {
     return text;
   }
