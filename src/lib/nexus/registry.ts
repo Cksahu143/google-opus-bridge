@@ -11,6 +11,7 @@ import formsAdapter from "@/integrations/google/forms/index";
 import geminiAdapter from "@/integrations/google/gemini/index";
 import gmailAdapter from "@/integrations/google/gmail/index";
 import githubAdapter from "@/integrations/github/index";
+import browserAdapter from "@/integrations/browser/index";
 import replicateAdapter from "@/integrations/replicate/index";
 import huggingfaceAdapter from "@/integrations/huggingface/index";
 import imagenAdapter from "@/integrations/google/imagen/index";
@@ -51,6 +52,7 @@ export const ADAPTERS: GoogleAdapter[] = [
   flowAdapter,
   notebooklmAdapter,
   githubAdapter,
+  browserAdapter,
   replicateAdapter,
   huggingfaceAdapter,
 ];
