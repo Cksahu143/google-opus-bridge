@@ -128,8 +128,8 @@ export interface BrowserGotoOptions {
 
 export async function getRenderedHtml(opts: BrowserGotoOptions): Promise<string> {
   await robotsGuard(opts.url, opts.ignoreRobotsTxt ?? false);
-  const result = await browserFetch<{ content?: string }>("content", requestBody(opts));
-  return result.content ?? "";
+  const result = await browserFetch<string>("content", requestBody(opts));
+  return typeof result === "string" ? result : "";
 }
 
 export async function getMarkdown(opts: BrowserGotoOptions): Promise<string> {
