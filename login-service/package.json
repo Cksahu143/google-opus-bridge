@@ -1,0 +1,14 @@
+{
+  "name": "notebooklm-login-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Companion service: runs a real browser login for NotebookLM (via notebooklm-py's Playwright flow) and hands the captured session cookie to the Supabase-backed bridge. Never runs unattended; only during an explicit user-initiated 'Connect NotebookLM' action.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "setup": "python3 -m venv .venv && . .venv/bin/activate && pip install 'notebooklm-py[browser]' && playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
