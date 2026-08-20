@@ -1,17 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 // UNTESTED — written for review. Requires the login-service companion
-// (see /login-service in repo root) to be deployed and reachable at
-// LOGIN_SERVICE_URL below before this page will actually work.
+// (see /login-service in repo root, Dockerfile included) to be deployed
+// and reachable at LOGIN_SERVICE_URL below before this page will actually
+// work.
 //
-// This page works from an iPad's Safari because the actual browser doing
-// the Google login is remote (Browserbase), streamed into this page via an
-// <iframe>. The iPad user taps/types inside that iframe exactly like a
-// normal login page — nothing native or app-wrapper related is needed.
+// This is the FREE / self-hosted version: the actual browser doing the
+// Google login runs in a Docker container you host (Xvfb + Chromium +
+// noVNC), streamed into this page via a plain <iframe>. No third-party
+// browser-automation service, no per-minute cost. The iPad user
+// taps/types inside that iframe exactly like a normal login page.
+//
+// KNOWN LIMITATION (see login-service/server.js): only one login session
+// can be in progress at a time across the whole deployment.
 
 export const Route = createFileRoute("/notebooks/connect")({
   ssr: false,
@@ -44,11 +49,32 @@ type ConnectState =
 function ConnectNotebookLmPage() {
   const [state, setState] = useState<ConnectState>({ step: "idle" });
   const [userId, setUserId] = useState<string | null>(null);
+  // Track the in-flight sessionId so we can cancel it if the user navigates
+  // away mid-login — otherwise the single-session slot on login-service
+  // stays occupied until it eventually times out on its own (no timeout is
+  // currently implemented server-side either — see README known gaps).
+  const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id ?? null);
     });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const id = sessionIdRef.current;
+      if (id) {
+        // Best-effort cleanup on unmount; ignore failures since the page is
+        // already closing.
+        fetch(`${LOGIN_SERVICE_URL}/connect/cancel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: id }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
   }, []);
 
   async function startConnect() {
@@ -63,8 +89,15 @@ function ConnectNotebookLmPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        // 409 specifically means the single-session slot is occupied — surface
+        // that distinctly since "try again shortly" is actually correct advice
+        // here, unlike a generic failure.
+        const text = await res.text();
+        throw new Error(res.status === 409 ? `Someone else is connecting right now — try again in a minute. (${text})` : text);
+      }
       const { sessionId, liveViewUrl } = await res.json();
+      sessionIdRef.current = sessionId;
       setState({ step: "awaiting-login", sessionId, liveViewUrl });
     } catch (err) {
       setState({ step: "error", message: String((err as Error)?.message ?? err) });
@@ -80,6 +113,7 @@ function ConnectNotebookLmPage() {
         body: JSON.stringify({ sessionId }),
       });
       if (!res.ok) throw new Error(await res.text());
+      sessionIdRef.current = null;
       setState({ step: "connected" });
     } catch (err) {
       setState({ step: "error", message: String((err as Error)?.message ?? err) });
@@ -114,8 +148,9 @@ function ConnectNotebookLmPage() {
       {state.step === "awaiting-login" && (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-lg border border-border" style={{ aspectRatio: "16 / 10" }}>
-            {/* This iframe loads a REAL, live, remote browser session (Browserbase).
-                It is not a screenshot — the user can tap/type in it directly. */}
+            {/* This iframe loads a REAL, live, self-hosted browser session
+                (Xvfb + Chromium via noVNC). It is not a screenshot — the
+                user can tap/type in it directly. */}
             <iframe
               src={state.liveViewUrl}
               title="NotebookLM login"
