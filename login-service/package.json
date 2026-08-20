@@ -1,12 +1,11 @@
 {
   "name": "notebooklm-login-service",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Companion service: runs a real browser login for NotebookLM (via notebooklm-py's Playwright flow) and hands the captured session cookie to the Supabase-backed bridge. Never runs unattended; only during an explicit user-initiated 'Connect NotebookLM' action.",
+  "description": "Companion service: creates a remote Browserbase browser session for NotebookLM login (embeddable live-view iframe, works on iPad Safari), captures the resulting session cookie, and hands it to the Supabase-backed bridge for Vault storage. Only runs during an explicit user-initiated 'Connect NotebookLM' action.",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "setup": "python3 -m venv .venv && . .venv/bin/activate && pip install 'notebooklm-py[browser]' && playwright install chromium"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2"
