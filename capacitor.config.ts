@@ -1,34 +1,27 @@
+// capacitor.config.ts
+//
+// SUPERSEDED / NOT IN USE.
+//
+// This file was an earlier proposal to wrap the whole app as a native iPad
+// app. That is NOT what's being built — the actual requirement is just
+// making NotebookLM login work when the existing web app is opened on an
+// iPad's Safari, which is solved instead by /notebooks/connect.tsx +
+// login-service (Browserbase-based remote-browser login, embedded via a
+// plain <iframe>). No native wrapper, no App Store, no Xcode build needed.
+//
+// Left in place only for reference/history — safe to delete this file.
+// The @capacitor/* packages referenced below were never installed and
+// should not be added.
+
 import type { CapacitorConfig } from "@capacitor/cli";
 
-// UNTESTED — written for review before running `npx cap add ios`.
-//
-// IMPORTANT: this project is TanStack Start (SSR via Nitro), not a plain
-// static SPA (see package.json: @tanstack/react-start, nitro). Capacitor
-// cannot reliably bundle server-rendered output for fully offline use.
-// This config instead points the native shell at the DEPLOYED site via
-// `server.url`, so the iPad app is a real installed app wrapping the live
-// site — same approach Twitter/Instagram-style hybrid apps use, and the
-// most reliable option for an SSR framework. It requires network
-// connectivity to work (no offline mode) unless a separate static-export
-// path is built later.
-//
-// Replace `server.url` with your actual production domain before building.
 const config: CapacitorConfig = {
   appId: "com.charukrishna.googleopusbridge",
   appName: "Google Opus Bridge",
-  webDir: "dist", // only used as a fallback shell; real content loads from server.url
+  webDir: "dist",
   server: {
-    // CONFIRM this is the correct production URL before building.
     url: "https://google-opus-bridge.lovable.app",
     cleartext: false,
-  },
-  ios: {
-    contentInset: "automatic",
-    // iPad-specific: allow both orientations, and don't force a phone-sized
-    // status bar layout. Fine-tune in Xcode's General > Deployment Info
-    // after `npx cap open ios` — set "Devices" to iPad (or Universal) and
-    // enable both landscape orientations there, since some of these
-    // settings aren't fully controllable from capacitor.config alone.
   },
 };
 
