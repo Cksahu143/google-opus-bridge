@@ -25,7 +25,8 @@ export const Route = createFileRoute("/notebooks/connect")({
       { title: "Connect NotebookLM · Google Nexus" },
       {
         name: "description",
-        content: "Connect your real NotebookLM account so Claude can create and manage real notebooks.",
+        content:
+          "Connect your real NotebookLM account so Claude can create and manage real notebooks.",
       },
     ],
   }),
@@ -36,18 +37,25 @@ export const Route = createFileRoute("/notebooks/connect")({
 // it is a separate service from this TanStack Start app and needs its own
 // hosting (see login-service/README.md).
 const LOGIN_SERVICE_URL =
-  import.meta.env.VITE_NOTEBOOKLM_LOGIN_SERVICE_URL ?? "http://localhost:8787";
+  import.meta.env["VITE_NOTEBOOKLM_LOGIN_SERVICE_URL"] ?? "http://localhost:8787";
+
+// Base URL for this project's Supabase Edge Functions, used for the
+// /status and /disconnect calls (both go through notebooklm-connect,
+// authenticated with the signed-in user's own JWT — see authHeader()).
+const SUPABASE_FUNCTIONS_URL = import.meta.env["VITE_SUPABASE_FUNCTIONS_URL"] ?? "";
 
 type ConnectState =
+  | { step: "checking" }
   | { step: "idle" }
   | { step: "starting" }
   | { step: "awaiting-login"; sessionId: string; liveViewUrl: string }
   | { step: "completing"; sessionId: string }
-  | { step: "connected" }
+  | { step: "connected"; connectedAt: string | null }
+  | { step: "disconnecting" }
   | { step: "error"; message: string };
 
 function ConnectNotebookLmPage() {
-  const [state, setState] = useState<ConnectState>({ step: "idle" });
+  const [state, setState] = useState<ConnectState>({ step: "checking" });
   const [userId, setUserId] = useState<string | null>(null);
   // Track the in-flight sessionId so we can cancel it if the user navigates
   // away mid-login — otherwise the single-session slot on login-service
@@ -55,9 +63,35 @@ function ConnectNotebookLmPage() {
   // currently implemented server-side either — see README known gaps).
   const sessionIdRef = useRef<string | null>(null);
 
+  async function authHeader(): Promise<Record<string, string>> {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async function checkStatus() {
+    try {
+      const headers = await authHeader();
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/notebooklm-connect/status`, { headers });
+      if (!res.ok) throw new Error(await res.text());
+      const data = (await res.json()) as { status: string; connected_at: string | null };
+      setState(
+        data.status === "connected"
+          ? { step: "connected", connectedAt: data.connected_at }
+          : { step: "idle" },
+      );
+    } catch (err) {
+      // Not fatal — just fall back to showing the connect button rather
+      // than blocking the page on a status-check failure.
+      setState({ step: "idle" });
+      console.error("Failed to check NotebookLM connection status:", err);
+    }
+  }
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id ?? null);
+      void checkStatus();
     });
   }, []);
 
@@ -94,7 +128,11 @@ function ConnectNotebookLmPage() {
         // that distinctly since "try again shortly" is actually correct advice
         // here, unlike a generic failure.
         const text = await res.text();
-        throw new Error(res.status === 409 ? `Someone else is connecting right now — try again in a minute. (${text})` : text);
+        throw new Error(
+          res.status === 409
+            ? `Someone else is connecting right now — try again in a minute. (${text})`
+            : text,
+        );
       }
       const { sessionId, liveViewUrl } = await res.json();
       sessionIdRef.current = sessionId;
@@ -114,7 +152,22 @@ function ConnectNotebookLmPage() {
       });
       if (!res.ok) throw new Error(await res.text());
       sessionIdRef.current = null;
-      setState({ step: "connected" });
+      setState({ step: "connected", connectedAt: new Date().toISOString() });
+    } catch (err) {
+      setState({ step: "error", message: String((err as Error)?.message ?? err) });
+    }
+  }
+
+  async function disconnect() {
+    setState({ step: "disconnecting" });
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/notebooklm-connect/disconnect`, {
+        method: "POST",
+        headers,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setState({ step: "idle" });
     } catch (err) {
       setState({ step: "error", message: String((err as Error)?.message ?? err) });
     }
@@ -130,12 +183,16 @@ function ConnectNotebookLmPage() {
           Connect NotebookLM
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This connects your real NotebookLM account (not the separate Nexus-managed notebooks
-          used elsewhere in this app). You&apos;ll log into Google in the embedded window below —
-          works the same on iPad, iPhone, or desktop, since it&apos;s a regular web page, not a
-          native login.
+          This connects your real NotebookLM account (not the separate Nexus-managed notebooks used
+          elsewhere in this app). You&apos;ll log into Google in the embedded window below — works
+          the same on iPad, iPhone, or desktop, since it&apos;s a regular web page, not a native
+          login.
         </p>
       </div>
+
+      {state.step === "checking" && (
+        <p className="text-sm text-muted-foreground">Checking connection status…</p>
+      )}
 
       {state.step === "idle" && (
         <Button onClick={startConnect} disabled={!userId}>
@@ -143,11 +200,16 @@ function ConnectNotebookLmPage() {
         </Button>
       )}
 
-      {state.step === "starting" && <p className="text-sm text-muted-foreground">Starting a secure login session…</p>}
+      {state.step === "starting" && (
+        <p className="text-sm text-muted-foreground">Starting a secure login session…</p>
+      )}
 
       {state.step === "awaiting-login" && (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border border-border" style={{ aspectRatio: "16 / 10" }}>
+          <div
+            className="overflow-hidden rounded-lg border border-border"
+            style={{ aspectRatio: "16 / 10" }}
+          >
             {/* This iframe loads a REAL, live, self-hosted browser session
                 (Xvfb + Chromium via noVNC). It is not a screenshot — the
                 user can tap/type in it directly. */}
@@ -162,9 +224,7 @@ function ConnectNotebookLmPage() {
             Log into your Google account above. Once you see your NotebookLM notebooks load inside
             the window, tap the button below.
           </p>
-          <Button onClick={() => finishConnect(state.sessionId)}>
-            I&apos;m done logging in
-          </Button>
+          <Button onClick={() => finishConnect(state.sessionId)}>I&apos;m done logging in</Button>
         </div>
       )}
 
@@ -173,9 +233,20 @@ function ConnectNotebookLmPage() {
       )}
 
       {state.step === "connected" && (
-        <p className="text-sm text-foreground">
-          NotebookLM connected. Claude can now create and manage your real notebooks.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-foreground">
+            NotebookLM connected
+            {state.connectedAt ? ` — since ${new Date(state.connectedAt).toLocaleString()}` : ""}.
+            Claude can now create and manage your real notebooks.
+          </p>
+          <Button variant="outline" onClick={disconnect}>
+            Disconnect NotebookLM
+          </Button>
+        </div>
+      )}
+
+      {state.step === "disconnecting" && (
+        <p className="text-sm text-muted-foreground">Disconnecting…</p>
       )}
 
       {state.step === "error" && (

@@ -109,17 +109,24 @@ serve(async (req) => {
 
   // --- POST /disconnect  (called by the authenticated bridge frontend) ---
   if (req.method === "POST" && url.pathname === "/disconnect") {
-    // NOTE: this path should be protected by normal Supabase Auth (the
-    // caller's JWT), not the shared secret — verify req has a valid user
-    // session before trusting userId from the body. Left as a TODO: wire
-    // this through supabase.auth.getUser() with the caller's own JWT
-    // rather than trusting a client-supplied userId directly.
-    const { userId } = await req.json().catch(() => ({}));
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "userId is required" }), {
-        status: 400,
+    // Authenticate the caller via their own JWT rather than trusting a
+    // client-supplied userId in the body — the previous version trusted
+    // whatever userId was posted, which would let any signed-in user
+    // disconnect any other user's session just by knowing their id.
+    const authHeader = req.headers.get("Authorization");
+    const jwt = authHeader?.replace(/^Bearer\s+/i, "");
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        status: 401,
       });
     }
+    const { data: userData, error: userError } = await supabase.auth.getUser(jwt);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
+        status: 401,
+      });
+    }
+    const userId = userData.user.id;
 
     const secretName = vaultSecretName(userId);
     const { error } = await supabase.rpc("vault_delete_secret_by_name", {
@@ -138,6 +145,41 @@ serve(async (req) => {
       .eq("user_id", userId);
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }
+
+  // --- GET /status  (called by the authenticated bridge frontend) ---
+  // Reports connection status for the CALLING user only (own JWT, same
+  // auth pattern as /disconnect above) — lets the UI show "Connected" /
+  // "Not connected" without ever reading the underlying secret.
+  if (req.method === "GET" && url.pathname === "/status") {
+    const authHeader = req.headers.get("Authorization");
+    const jwt = authHeader?.replace(/^Bearer\s+/i, "");
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        status: 401,
+      });
+    }
+    const { data: userData, error: userError } = await supabase.auth.getUser(jwt);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
+        status: 401,
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("notebooklm_connections")
+      .select("status, connected_at, disconnected_at, last_used_at")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    }
+
+    return new Response(
+      JSON.stringify(data ?? { status: "disconnected", connected_at: null, disconnected_at: null, last_used_at: null }),
+      { status: 200 },
+    );
   }
 
   return new Response("Not found", { status: 404 });
