@@ -26,6 +26,38 @@ export const githubAdapter = defineAdapter({
   },
   capabilities: [
     defineCapability({
+      id: "github.create_repo",
+      title: "Create a new repository",
+      description:
+        "Create a new GitHub repository under the authenticated account (or an org it belongs to).",
+      implementation: "google-rest-api",
+      scopes: [],
+      mutating: true,
+      input: z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        org: z
+          .string()
+          .optional()
+          .describe("Create under this org instead of the token owner's personal account."),
+        private: z.boolean().default(true),
+        autoInit: z
+          .boolean()
+          .default(true)
+          .describe("Initialize with a README so the repo isn't empty."),
+      }),
+      run: (_ctx, input) =>
+        githubJson(input.org ? `orgs/${input.org}/repos` : "user/repos", {
+          method: "POST",
+          body: {
+            name: input.name,
+            ...(input.description ? { description: input.description } : {}),
+            private: input.private,
+            auto_init: input.autoInit,
+          },
+        }),
+    }),
+    defineCapability({
       id: "github.get_repo",
       title: "Get repository info",
       description: "Read a repository's metadata (default branch, description, visibility, etc).",
