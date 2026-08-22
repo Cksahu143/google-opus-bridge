@@ -15,9 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOGIN_SERVICE_SHARED_SECRET = Deno.env.get(
-  "LOGIN_SERVICE_SHARED_SECRET",
-)!;
+const LOGIN_SERVICE_SHARED_SECRET = Deno.env.get("LOGIN_SERVICE_SHARED_SECRET")!;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !LOGIN_SERVICE_SHARED_SECRET) {
   console.error(
@@ -36,9 +34,13 @@ function vaultSecretName(userId: string): string {
 
 serve(async (req) => {
   const url = new URL(req.url);
+  // Supabase Edge Functions receive the URL with the function's own name as
+  // a path prefix (e.g. /notebooklm-connect/status), not a bare path — strip
+  // it so routing below works the same locally and when deployed.
+  const path = url.pathname.replace(/^\/notebooklm-connect/, "") || "/";
 
   // --- POST /  (called only by login-service, never by the frontend) ---
-  if (req.method === "POST" && url.pathname === "/") {
+  if (req.method === "POST" && path === "/") {
     const incomingSecret = req.headers.get("X-Login-Service-Secret");
     if (incomingSecret !== LOGIN_SERVICE_SHARED_SECRET) {
       return new Response(JSON.stringify({ error: "unauthorized" }), {
@@ -48,10 +50,9 @@ serve(async (req) => {
 
     const { userId, sessionId, cookieJson } = await req.json().catch(() => ({}));
     if (!userId || !cookieJson) {
-      return new Response(
-        JSON.stringify({ error: "userId and cookieJson are required" }),
-        { status: 400 },
-      );
+      return new Response(JSON.stringify({ error: "userId and cookieJson are required" }), {
+        status: 400,
+      });
     }
 
     const secretName = vaultSecretName(userId);
@@ -60,21 +61,21 @@ serve(async (req) => {
     // upsert by name in all versions — verify against the installed pg
     // extension version; this defensive delete-then-create is the safe
     // default either way).
-    await supabase.rpc("vault_delete_secret_by_name", {
-      secret_name: secretName,
-    }).catch(() => {
-      // Ignore — secret may not exist yet. If this RPC helper doesn't exist
-      // in the project yet, see the accompanying SQL migration file that
-      // should be added alongside this function (not yet created — see
-      // NOTEBOOKLM_INTEGRATION.md open items).
-    });
+    await supabase
+      .rpc("vault_delete_secret_by_name", {
+        secret_name: secretName,
+      })
+      .catch(() => {
+        // Ignore — secret may not exist yet. If this RPC helper doesn't exist
+        // in the project yet, see the accompanying SQL migration file that
+        // should be added alongside this function (not yet created — see
+        // NOTEBOOKLM_INTEGRATION.md open items).
+      });
 
     const { data, error } = await supabase.rpc("vault_create_secret", {
       secret_value: cookieJson,
       secret_name: secretName,
-      secret_description: `NotebookLM session for user ${userId}, captured ${
-        new Date().toISOString()
-      } (session ${sessionId ?? "unknown"})`,
+      secret_description: `NotebookLM session for user ${userId}, captured ${new Date().toISOString()} (session ${sessionId ?? "unknown"})`,
     });
 
     if (error) {
@@ -89,14 +90,12 @@ serve(async (req) => {
     // reading the cookie back out. This table (notebooklm_connections) is
     // assumed but not yet created — see open items in
     // NOTEBOOKLM_INTEGRATION.md.
-    const { error: metaError } = await supabase
-      .from("notebooklm_connections")
-      .upsert({
-        user_id: userId,
-        vault_secret_name: secretName,
-        connected_at: new Date().toISOString(),
-        status: "connected",
-      });
+    const { error: metaError } = await supabase.from("notebooklm_connections").upsert({
+      user_id: userId,
+      vault_secret_name: secretName,
+      connected_at: new Date().toISOString(),
+      status: "connected",
+    });
 
     if (metaError) {
       console.error("Failed to record connection metadata:", metaError);
@@ -108,7 +107,7 @@ serve(async (req) => {
   }
 
   // --- POST /disconnect  (called by the authenticated bridge frontend) ---
-  if (req.method === "POST" && url.pathname === "/disconnect") {
+  if (req.method === "POST" && path === "/disconnect") {
     // Authenticate the caller via their own JWT rather than trusting a
     // client-supplied userId in the body — the previous version trusted
     // whatever userId was posted, which would let any signed-in user
@@ -151,7 +150,7 @@ serve(async (req) => {
   // Reports connection status for the CALLING user only (own JWT, same
   // auth pattern as /disconnect above) — lets the UI show "Connected" /
   // "Not connected" without ever reading the underlying secret.
-  if (req.method === "GET" && url.pathname === "/status") {
+  if (req.method === "GET" && path === "/status") {
     const authHeader = req.headers.get("Authorization");
     const jwt = authHeader?.replace(/^Bearer\s+/i, "");
     if (!jwt) {
@@ -177,7 +176,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify(data ?? { status: "disconnected", connected_at: null, disconnected_at: null, last_used_at: null }),
+      JSON.stringify(
+        data ?? {
+          status: "disconnected",
+          connected_at: null,
+          disconnected_at: null,
+          last_used_at: null,
+        },
+      ),
       { status: 200 },
     );
   }
